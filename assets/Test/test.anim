@@ -1,0 +1,9 @@
+{
+    "map" : {
+        "idle" : { "start_idx" : 0, "end_idx" : 1, "frame_time" : 0.4},
+        "death" : { "start_idx" : 25, "end_idx" : 29, "frame_time" : 0.1}
+    },
+    "tile_size" : 16,
+    "rows" : 7,
+    "columns" : 5
+}
