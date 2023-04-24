@@ -6,25 +6,28 @@ use bevy::render::texture::{CompressedImageFormats, ImageType};
 use bevy::utils::HashMap;
 use serde::Deserialize;
 
+use crate::component::AnimId;
+use crate::hash;
+
 #[derive(Debug, Deserialize, Clone)]
-pub struct AnimMeta {
+pub struct DeAnimMeta {
     pub start_idx: usize,
     pub len: usize,
     pub frame_time: f32,
     #[serde(default)]
-    pub mode: AnimMode,
+    pub mode: DeAnimMode,
 }
 
-#[derive(Debug, Default, Deserialize, Clone, Copy)]
-pub enum AnimMode {
+#[derive(Debug, Default, Deserialize, Clone)]
+pub enum DeAnimMode {
     #[default]
     Repeating,
-    Once,
+    Once(Option<String>),
 }
 
 #[derive(Debug, Deserialize)]
-struct AnimAtlasMeta {
-    map: HashMap<String, AnimMeta>,
+struct DeAnimAtlasMeta {
+    map: HashMap<String, DeAnimMeta>,
     tile_size: usize,
     rows: usize,
     columns: usize,
@@ -33,8 +36,46 @@ struct AnimAtlasMeta {
 #[derive(Debug, TypeUuid)]
 #[uuid = "c33c1eaa-e107-11ed-b5ea-0242ac120002"]
 pub struct Animation {
-    pub map: HashMap<String, AnimMeta>,
+    pub map: HashMap<usize, AnimMeta>,
     pub atlas: Handle<TextureAtlas>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnimMeta {
+    pub start_idx: usize,
+    pub len: usize,
+    pub frame_time: f32,
+    pub mode: AnimMode,
+}
+
+impl Default for AnimMeta {
+    fn default() -> Self {
+        Self {
+            start_idx: 0,
+            len: 1,
+            frame_time: 0.5,
+            mode: default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum AnimMode {
+    #[default]
+    Repeating,
+    Once(Option<usize>),
+}
+
+impl Animation {
+    pub fn get_with_str(&self, str: &str) -> Option<&AnimMeta> {
+        self.map.get(&hash::hash(str))
+    }
+    pub fn get_with_hash(&self, hash: usize) -> Option<&AnimMeta> {
+        self.map.get(&hash)
+    }
+    pub fn get_with_id(&self, id: impl AnimId) -> Option<&AnimMeta> {
+        self.map.get(&id.id())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -47,14 +88,23 @@ impl AssetLoader for AnimationLoader {
         load_context: &'a mut bevy::asset::LoadContext,
     ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
-            let anim_meta: AnimAtlasMeta = ron::de::from_bytes(bytes)?;
             info!("Loading meta animation asset {:?}", load_context.path());
+            let anim_path = load_context.path().with_extension("ron");
+            
+            let try_anim_bytes = load_context.read_asset_bytes(anim_path).await;
 
-            let image_path = load_context.path().with_extension("").with_extension("png");
-            let image_bytes = load_context.read_asset_bytes(image_path).await?;
+            let anim_bytes = match try_anim_bytes {
+                Ok(bytes) => bytes,
+                Err(_) => {
+                    let anim_path = load_context.path().parent().unwrap().join("anim.ron");
+                    load_context.read_asset_bytes(anim_path).await?
+                },
+            };
+
+            let anim_meta: DeAnimAtlasMeta = ron::de::from_bytes(&anim_bytes)?;
 
             let image = Image::from_buffer(
-                &image_bytes,
+                bytes,
                 ImageType::Extension("png"),
                 CompressedImageFormats::all(),
                 true,
@@ -74,8 +124,29 @@ impl AssetLoader for AnimationLoader {
             let atlas_handle =
                 load_context.set_labeled_asset("atlas", LoadedAsset::new(texture_atlas));
 
+            let map: HashMap<usize, AnimMeta> = anim_meta
+                .map
+                .into_iter()
+                .map(|(s, a)| {
+                    (
+                        hash::hash(&s),
+                        AnimMeta {
+                            start_idx: a.start_idx,
+                            len: a.len,
+                            frame_time: a.frame_time,
+                            mode: match a.mode {
+                                DeAnimMode::Repeating => AnimMode::Repeating,
+                                DeAnimMode::Once(s) => AnimMode::Once(s.map(|s| hash::hash(&s))),
+                            },
+                        },
+                    )
+                })
+                .collect();
+
+            info!("Build map with keys {:?}", &map.keys());
+
             let anim = Animation {
-                map: anim_meta.map,
+                map,
                 atlas: atlas_handle,
             };
 
@@ -88,11 +159,11 @@ impl AssetLoader for AnimationLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["anim.ron"]
+        &["png"]
     }
 }
 
-impl Default for AnimMeta {
+impl Default for DeAnimMeta {
     fn default() -> Self {
         Self {
             start_idx: 0,

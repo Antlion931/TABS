@@ -1,9 +1,0 @@
-(
-    map : {
-        "idle" : ( start_idx : 5, len : 2, frame_time : 0.1 ),
-        "death" : ( start_idx : 25, len : 5, frame_time : 0.1, mode : Once ),
-    },
-    tile_size : 16,
-    rows : 7,
-    columns : 5,
-)

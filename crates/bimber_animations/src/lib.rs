@@ -1,11 +1,11 @@
 pub mod asset;
 pub mod component;
 pub mod system;
+pub mod hash;
 
 use bevy::prelude::*;
 
 use self::{
-    component::UntypedAnimState,
     system::{advance_anims, on_change_anim_state, on_load_anim}, asset::{AnimationLoader, Animation},
 };
 
@@ -16,7 +16,7 @@ impl Plugin for AnimationPlugin {
         app.init_asset_loader::<AnimationLoader>()
             .add_asset::<Animation>()
             .add_system(advance_anims)
-            .add_system(on_change_anim_state::<UntypedAnimState>)
-            .add_system(on_load_anim::<UntypedAnimState>);
+            .add_system(on_change_anim_state)
+            .add_system(on_load_anim);
     }
 }

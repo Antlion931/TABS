@@ -968,6 +968,7 @@ name = "bimber_animations"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "fxhash",
  "ron",
  "serde",
 ]
