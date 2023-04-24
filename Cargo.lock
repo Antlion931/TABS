@@ -968,8 +968,8 @@ name = "bimber_animations"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "ron",
  "serde",
- "serde_json",
 ]
 
 [[package]]

@@ -38,10 +38,10 @@ impl AssetLoader for AnimationLoader {
         load_context: &'a mut bevy::asset::LoadContext,
     ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
-            let anim_meta = serde_json::from_slice::<AnimAtlasMeta>(bytes)?;
+            let anim_meta : AnimAtlasMeta = ron::de::from_bytes(bytes)?;
             info!("Loading meta animation asset {:?}", load_context.path());
 
-            let image_path = load_context.path().with_extension("png");
+            let image_path = load_context.path().with_extension("").with_extension("png");
             let image_bytes = load_context.read_asset_bytes(image_path).await?;
 
             let image = Image::from_buffer(
@@ -79,7 +79,7 @@ impl AssetLoader for AnimationLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["anim"]
+        &["anim.ron"]
     }
 }
 

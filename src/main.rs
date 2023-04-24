@@ -6,8 +6,8 @@ use bimber_animations::{
 };
 
 fn spawn_test(mut commands: Commands, server: Res<AssetServer>) {
-    let animation: Handle<Animation> = server.load("Test/test.anim");
-    let atlas: Handle<TextureAtlas> = server.load("Test/test.anim#atlas");
+    let animation: Handle<Animation> = server.load("Test/test.anim.ron");
+    let atlas: Handle<TextureAtlas> = server.load("Test/test.anim.ron#atlas");
 
     commands.spawn(AnimatedSpriteBundle {
         anim_state: UntypedAnimState("idle"),
