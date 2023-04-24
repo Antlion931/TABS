@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use game::animation::{
+use bimber_animations::{
     asset::Animation,
     component::{Animated, AnimatedSpriteBundle, UntypedAnimState},
     AnimationPlugin,

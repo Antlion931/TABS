@@ -964,6 +964,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bimber_animations"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.64.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1493,8 +1502,7 @@ name = "game"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "serde",
- "serde_json",
+ "bimber_animations",
 ]
 
 [[package]]
