@@ -2,14 +2,16 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::asset::AnimMeta;
+
 use super::asset::Animation;
 
 #[derive(Debug, Component)]
 pub struct Animated {
     pub animation: Handle<Animation>,
     pub curr_idx: usize,
-    pub start_idx: usize,
-    pub end_idx: usize,
+    pub is_paused: bool,
+    pub meta: AnimMeta,
     pub timer: Timer,
 }
 
@@ -37,10 +39,10 @@ impl Default for Animated {
     fn default() -> Self {
         Self {
             animation: Default::default(),
-            curr_idx: Default::default(),
-            start_idx: Default::default(),
-            end_idx: Default::default(),
+            curr_idx: 0,
+            meta: Default::default(),
             timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
+            is_paused: true
         }
     }
 }

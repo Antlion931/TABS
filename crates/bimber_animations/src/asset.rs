@@ -6,11 +6,20 @@ use bevy::render::texture::{CompressedImageFormats, ImageType};
 use bevy::utils::HashMap;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct AnimMeta {
     pub start_idx: usize,
-    pub end_idx: usize,
+    pub len: usize,
     pub frame_time: f32,
+    #[serde(default)]
+    pub mode: AnimMode,
+}
+
+#[derive(Debug, Default, Deserialize, Clone, Copy)]
+pub enum AnimMode {
+    #[default]
+    Repeating,
+    Once,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,7 +47,7 @@ impl AssetLoader for AnimationLoader {
         load_context: &'a mut bevy::asset::LoadContext,
     ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
-            let anim_meta : AnimAtlasMeta = ron::de::from_bytes(bytes)?;
+            let anim_meta: AnimAtlasMeta = ron::de::from_bytes(bytes)?;
             info!("Loading meta animation asset {:?}", load_context.path());
 
             let image_path = load_context.path().with_extension("").with_extension("png");
@@ -80,6 +89,17 @@ impl AssetLoader for AnimationLoader {
 
     fn extensions(&self) -> &[&str] {
         &["anim.ron"]
+    }
+}
+
+impl Default for AnimMeta {
+    fn default() -> Self {
+        Self {
+            start_idx: 0,
+            len: 1,
+            frame_time: 0.1,
+            mode: default(),
+        }
     }
 }
 

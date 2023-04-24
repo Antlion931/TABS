@@ -2,13 +2,27 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::asset::AnimMode;
+
 use super::{asset::Animation, component::{Animated, AnimState}};
 
 pub fn advance_anims(mut query : Query<(&mut Animated, &mut TextureAtlasSprite)>, time: Res<Time>) {
     for (mut animated, mut sprite) in query.iter_mut() {
         animated.timer.tick(time.delta());
-        animated.curr_idx = (animated.curr_idx + animated.timer.times_finished_this_tick() as usize) % (animated.end_idx - animated.start_idx + 1);
-        sprite.index = animated.start_idx + animated.curr_idx;
+        match animated.meta.mode {
+            AnimMode::Repeating => {
+                animated.curr_idx = (animated.curr_idx + animated.timer.times_finished_this_tick() as usize) % animated.meta.len;
+            },
+            AnimMode::Once => {
+                animated.curr_idx += animated.timer.times_finished_this_tick() as usize;
+                if animated.curr_idx >= animated.meta.len - 1 {
+                    animated.curr_idx = animated.meta.len - 1;
+                    animated.is_paused = true;
+                }
+            },
+        }
+
+        sprite.index = animated.meta.start_idx + animated.curr_idx;
     }
 }
 
@@ -33,8 +47,8 @@ pub fn on_change_anim_state<A : AnimState>(mut query : Query<(&mut Animated, &A)
         };
 
         animated.curr_idx = 0;
-        animated.start_idx = next_anim.start_idx;
-        animated.end_idx = next_anim.end_idx;
+        animated.meta = next_anim.clone();
+        animated.is_paused = false;
 
         animated.timer.set_duration(Duration::from_secs_f32(next_anim.frame_time));
         animated.timer.reset();
