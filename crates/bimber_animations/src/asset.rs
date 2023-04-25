@@ -46,6 +46,7 @@ pub struct AnimMeta {
     pub len: usize,
     pub frame_time: f32,
     pub mode: AnimMode,
+    pub next: Option<usize>,
 }
 
 impl Default for AnimMeta {
@@ -55,6 +56,7 @@ impl Default for AnimMeta {
             len: 1,
             frame_time: 0.5,
             mode: default(),
+            next: None,
         }
     }
 }
@@ -63,7 +65,7 @@ impl Default for AnimMeta {
 pub enum AnimMode {
     #[default]
     Repeating,
-    Once(Option<usize>),
+    Once,
 }
 
 impl Animation {
@@ -90,7 +92,7 @@ impl AssetLoader for AnimationLoader {
         Box::pin(async move {
             info!("Loading meta animation asset {:?}", load_context.path());
             let anim_path = load_context.path().with_extension("ron");
-            
+
             let try_anim_bytes = load_context.read_asset_bytes(anim_path).await;
 
             let anim_bytes = match try_anim_bytes {
@@ -98,7 +100,7 @@ impl AssetLoader for AnimationLoader {
                 Err(_) => {
                     let anim_path = load_context.path().parent().unwrap().join("anim.ron");
                     load_context.read_asset_bytes(anim_path).await?
-                },
+                }
             };
 
             let anim_meta: DeAnimAtlasMeta = ron::de::from_bytes(&anim_bytes)?;
@@ -134,9 +136,13 @@ impl AssetLoader for AnimationLoader {
                             start_idx: a.start_idx,
                             len: a.len,
                             frame_time: a.frame_time,
-                            mode: match a.mode {
+                            mode: match &a.mode {
                                 DeAnimMode::Repeating => AnimMode::Repeating,
-                                DeAnimMode::Once(s) => AnimMode::Once(s.map(|s| hash::hash(&s))),
+                                DeAnimMode::Once(_) => AnimMode::Once,
+                            },
+                            next: match &a.mode {
+                                DeAnimMode::Repeating => None,
+                                DeAnimMode::Once(s) => s.as_ref().map(hash::hash),
                             },
                         },
                     )
