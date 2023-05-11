@@ -1,7 +1,7 @@
 (
     map : {
         "idle" : ( start_idx : 5, len : 2, frame_time : 0.2 ),
-        "injure" : ( start_idx : 25, len : 3, frame_time : 0.2, mode : Once(Some("injure_idle")) ),
+        "injure" : ( start_idx : 25, len : 3, frame_time : 0.2, mode : Once ),
         "injure_idle" : (start_idx : 27, len : 3, frame_time: 0.8 ),
     },
     tile_size : 16,

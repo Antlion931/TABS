@@ -6,8 +6,11 @@ use bevy::render::texture::{CompressedImageFormats, ImageType};
 use bevy::utils::HashMap;
 use serde::Deserialize;
 
-use crate::component::AnimId;
+use crate::component::ToAnimId;
 use crate::hash;
+
+// Deserialised data and proper data are different types
+// It's not currently necessary  
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DeAnimMeta {
@@ -22,7 +25,7 @@ pub struct DeAnimMeta {
 pub enum DeAnimMode {
     #[default]
     Repeating,
-    Once(Option<String>),
+    Once,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,10 +36,12 @@ struct DeAnimAtlasMeta {
     columns: usize,
 }
 
+pub type AnimId = usize;
+
 #[derive(Debug, TypeUuid)]
 #[uuid = "c33c1eaa-e107-11ed-b5ea-0242ac120002"]
 pub struct Animation {
-    pub map: HashMap<usize, AnimMeta>,
+    pub map: HashMap<AnimId, AnimMeta>,
     pub atlas: Handle<TextureAtlas>,
 }
 
@@ -46,7 +51,6 @@ pub struct AnimMeta {
     pub len: usize,
     pub frame_time: f32,
     pub mode: AnimMode,
-    pub next: Option<usize>,
 }
 
 impl Default for AnimMeta {
@@ -56,12 +60,11 @@ impl Default for AnimMeta {
             len: 1,
             frame_time: 0.5,
             mode: default(),
-            next: None,
         }
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum AnimMode {
     #[default]
     Repeating,
@@ -69,14 +72,14 @@ pub enum AnimMode {
 }
 
 impl Animation {
+    pub fn get_with_id(&self, id: AnimId) -> Option<&AnimMeta> {
+        self.map.get(&id)
+    }
     pub fn get_with_str(&self, str: &str) -> Option<&AnimMeta> {
         self.map.get(&hash::hash(str))
     }
-    pub fn get_with_hash(&self, hash: usize) -> Option<&AnimMeta> {
-        self.map.get(&hash)
-    }
-    pub fn get_with_id(&self, id: impl AnimId) -> Option<&AnimMeta> {
-        self.map.get(&id.id())
+    pub fn get_with_to_id(&self, to_id: impl ToAnimId) -> Option<&AnimMeta> {
+        self.map.get(&to_id.id())
     }
 }
 
@@ -90,7 +93,7 @@ impl AssetLoader for AnimationLoader {
         load_context: &'a mut bevy::asset::LoadContext,
     ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
-            info!("Loading meta animation asset {:?}", load_context.path());
+            debug!("Loading meta animation asset {:?}", load_context.path());
             let anim_path = load_context.path().with_extension("ron");
 
             let try_anim_bytes = load_context.read_asset_bytes(anim_path).await;
@@ -138,18 +141,14 @@ impl AssetLoader for AnimationLoader {
                             frame_time: a.frame_time,
                             mode: match &a.mode {
                                 DeAnimMode::Repeating => AnimMode::Repeating,
-                                DeAnimMode::Once(_) => AnimMode::Once,
-                            },
-                            next: match &a.mode {
-                                DeAnimMode::Repeating => None,
-                                DeAnimMode::Once(s) => s.as_ref().map(hash::hash),
+                                DeAnimMode::Once => AnimMode::Once,
                             },
                         },
                     )
                 })
                 .collect();
 
-            info!("Build map with keys {:?}", &map.keys());
+            debug!("Build map with keys {:?}", &map.keys());
 
             let anim = Animation {
                 map,
@@ -158,7 +157,7 @@ impl AssetLoader for AnimationLoader {
 
             load_context.set_default_asset(LoadedAsset::new(anim));
 
-            info!("Asset loaded");
+            debug!("Asset loaded");
 
             Ok(())
         })
